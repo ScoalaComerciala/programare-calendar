@@ -6,10 +6,7 @@ compatibility_date = "2024-01-01"
 binding = "SETTINGS"
 id = "339437a8f93b44108f5d5204405c56bc"
 
-[vars]
-# Parola pentru panoul de setari (admin). Schimb-o aici si redeploy!
-ADMIN_PASSWORD = "admin123"
-
-# Secretele (API key, List ID) le adaugi din dashboard sau cu:
+# Secretele (API key, List ID, parola admin) le adaugi din dashboard sau cu:
 # wrangler secret put CLICKUP_API_KEY
 # wrangler secret put CLICKUP_LIST_ID
+# wrangler secret put ADMIN_PASSWORD
