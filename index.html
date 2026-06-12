@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Programare Online</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 460px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #1a202c;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 5px;
+      margin-top: 16px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #2d3748;
+      transition: border 0.2s;
+      background: #f7fafc;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #fff;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      margin-top: 24px;
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:hover { opacity: 0.92; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .msg {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .msg.success { background: #c6f6d5; color: #276749; display: block; }
+    .msg.error   { background: #fed7d7; color: #9b2c2c; display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Programare Online</h1>
+    <p class="subtitle">Completeaza formularul si te contactam la data aleasa.</p>
+
+    <form id="bookingForm">
+      <label for="name">Nume complet *</label>
+      <input type="text" id="name" placeholder="Ion Popescu" required />
+
+      <label for="phone">Telefon *</label>
+      <input type="tel" id="phone" placeholder="07XX XXX XXX" required />
+
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="ion@email.com" />
+
+      <div class="row">
+        <div>
+          <label for="date">Data *</label>
+          <input type="date" id="date" required />
+        </div>
+        <div>
+          <label for="time">Ora *</label>
+          <input type="time" id="time" required />
+        </div>
+      </div>
+
+      <label for="service">Serviciu</label>
+      <select id="service">
+        <option value="Consultatie">Consultatie</option>
+        <option value="Intalnire">Intalnire</option>
+        <option value="Altul">Altul</option>
+      </select>
+
+      <label for="notes">Mentiuni (optional)</label>
+      <textarea id="notes" placeholder="Scrie orice detalii relevante..."></textarea>
+
+      <button type="submit" class="btn" id="submitBtn">Trimite programarea</button>
+    </form>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script>
+    // URL-ul Cloudflare Worker — il vei completa dupa deploy
+    const WORKER_URL = 'https://programare-calendar-worker.telefonsms0.workers.dev';
+
+    // seteaza data minima = azi
+    document.getElementById('date').min = new Date().toISOString().split('T')[0];
+
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('msg');
+
+      const data = {
+        name:    document.getElementById('name').value.trim(),
+        phone:   document.getElementById('phone').value.trim(),
+        email:   document.getElementById('email').value.trim(),
+        date:    document.getElementById('date').value,
+        time:    document.getElementById('time').value,
+        service: document.getElementById('service').value,
+        notes:   document.getElementById('notes').value.trim(),
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Se trimite...';
+      msg.className = 'msg';
+      msg.textContent = '';
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const json = await res.json();
+
+        if (res.ok) {
+          msg.className = 'msg success';
+          msg.textContent = 'Programarea a fost inregistrata! Te vom contacta in curand.';
+          e.target.reset();
+        } else if (res.status === 409) {
+          msg.className = 'msg error';
+          msg.textContent = json.error; // ora ocupata
+        } else {
+          throw new Error(json.error || 'Eroare necunoscuta');
+        }
+      } catch (err) {
+        msg.className = 'msg error';
+        msg.textContent = 'A aparut o eroare: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Trimite programarea';
+      }
+    });
+  </script>
+</body>
+</html>

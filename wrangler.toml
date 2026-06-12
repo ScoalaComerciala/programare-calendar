@@ -1,0 +1,7 @@
+name = "programare-calendar-worker"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Secretele (API key, List ID) le adaugi din dashboard sau cu:
+# wrangler secret put CLICKUP_API_KEY
+# wrangler secret put CLICKUP_LIST_ID
