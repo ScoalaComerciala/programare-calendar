@@ -11,6 +11,8 @@ const DEFAULT_SETTINGS = {
   startTime: '09:00',
   endTime: '17:00',
   slotMinutes: 60,
+  dateFrom: null,  // 'YYYY-MM-DD' sau null = fara limita
+  dateTo: null,
 };
 
 export default {
@@ -27,7 +29,7 @@ export default {
         return corsResponse(JSON.stringify(settings), 200);
       }
       if (request.method === 'POST') {
-        if (request.headers.get('X-Admin-Password') !== env.ADMIN_PASSWORD) {
+        if (request.headers.get('X-Admin-Password') !== (env.ADMIN_PASSWORD || '').trim()) {
           return corsResponse(JSON.stringify({ error: 'Parola gresita' }), 401);
         }
         let body;
@@ -83,6 +85,12 @@ export default {
     const reqMin = toMinutes(time);
     if (reqMin < toMinutes(settings.startTime) || reqMin + settings.slotMinutes > toMinutes(settings.endTime)) {
       return corsResponse(JSON.stringify({ error: 'Ora aleasa este in afara programului disponibil.' }), 400);
+    }
+    if (settings.dateFrom && date < settings.dateFrom) {
+      return corsResponse(JSON.stringify({ error: `Programarile sunt disponibile incepand cu ${settings.dateFrom}.` }), 400);
+    }
+    if (settings.dateTo && date > settings.dateTo) {
+      return corsResponse(JSON.stringify({ error: `Programarile sunt disponibile doar pana la ${settings.dateTo}.` }), 400);
     }
 
     // construieste timestamp-urile pentru ClickUp (milliseconds)
@@ -173,9 +181,14 @@ function sanitizeSettings(body) {
   const slotMinutes = [15, 30, 45, 60, 90, 120].includes(Number(body.slotMinutes))
     ? Number(body.slotMinutes) : null;
 
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const dateFrom = body.dateFrom && dateRe.test(body.dateFrom) ? body.dateFrom : null;
+  const dateTo   = body.dateTo   && dateRe.test(body.dateTo)   ? body.dateTo   : null;
+  if (dateFrom && dateTo && dateFrom > dateTo) return null;
+
   if (!days || !days.length || !startTime || !endTime || !slotMinutes) return null;
   if (toMinutes(startTime) >= toMinutes(endTime)) return null;
-  return { days, startTime, endTime, slotMinutes };
+  return { days, startTime, endTime, slotMinutes, dateFrom, dateTo };
 }
 
 function toMinutes(hhmm) {

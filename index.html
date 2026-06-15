@@ -403,6 +403,21 @@
         <option value="120">2 ore</option>
       </select>
 
+      <div style="margin-top:16px; padding:14px; background:#f7fafc; border:1px solid #e2e8f0; border-radius:10px;">
+        <div style="font-size:0.82rem;font-weight:700;color:#4a5568;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">Perioada activa (optional)</div>
+        <div class="row">
+          <div>
+            <label for="setDateFrom" style="margin-top:0">De la data</label>
+            <input type="date" id="setDateFrom" />
+          </div>
+          <div>
+            <label for="setDateTo" style="margin-top:0">Pana la data</label>
+            <input type="date" id="setDateTo" />
+          </div>
+        </div>
+        <p style="font-size:0.78rem;color:#718096;margin-top:8px;">Lasa gol daca nu vrei o limita de date.</p>
+      </div>
+
       <div class="msg" id="settingsMsg"></div>
 
       <div class="modal-actions">
@@ -464,10 +479,12 @@
         const ds = dateStr(viewYear, viewMonth, d);
         const isPast = cellDate < today;
         const isAllowed = settings.days.includes(cellDate.getDay());
+        const inRange = (!settings.dateFrom || ds >= settings.dateFrom)
+                     && (!settings.dateTo   || ds <= settings.dateTo);
 
         if (cellDate.getTime() === today.getTime()) btn.classList.add('today');
 
-        if (isPast || !isAllowed) {
+        if (isPast || !isAllowed || !inRange) {
           btn.disabled = true;
         } else {
           btn.classList.add('available');
@@ -648,6 +665,8 @@
       $('setStart').value = settings.startTime;
       $('setEnd').value = settings.endTime;
       $('setSlot').value = settings.slotMinutes;
+      $('setDateFrom').value = settings.dateFrom || '';
+      $('setDateTo').value = settings.dateTo || '';
       $('settingsMsg').className = 'msg';
       $('settingsModal').classList.add('open');
     });
@@ -660,11 +679,22 @@
     $('saveSettings').addEventListener('click', async () => {
       const smsg = $('settingsMsg');
       const days = [...document.querySelectorAll('#dayChecks input:checked')].map(i => Number(i.value));
+      const dateFrom = $('setDateFrom').value || null;
+      const dateTo   = $('setDateTo').value   || null;
+
+      if (dateFrom && dateTo && dateFrom > dateTo) {
+        smsg.className = 'msg error';
+        smsg.textContent = '"De la data" trebuie sa fie inainte de "Pana la data".';
+        return;
+      }
+
       const body = {
         days,
         startTime: $('setStart').value,
         endTime: $('setEnd').value,
         slotMinutes: Number($('setSlot').value),
+        dateFrom,
+        dateTo,
       };
 
       if (!days.length) { smsg.className = 'msg error'; smsg.textContent = 'Alege cel putin o zi.'; return; }
